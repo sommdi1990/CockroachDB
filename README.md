@@ -45,9 +45,9 @@
 ### پیش‌نیازها
 
 - Docker
-- CockroachDB (در حال اجرا روی پورت 26257)
+- Docker Compose
 
-### راه‌اندازی
+### راه‌اندازی با Docker
 
 1. **کلون کردن پروژه**:
    ```bash
@@ -55,24 +55,121 @@
    cd CockroachDB
    ```
 
-2. **راه‌اندازی دیتابیس**:
+2. **اجرای پروژه با Docker Compose**:
    ```bash
-   chmod +x scripts/init_database.sh
-   ./scripts/init_database.sh
+   docker-compose -f docker/docker-compose.yml up -d
    ```
 
-3. **تست اتصال**:
-   ```bash
-   cockroach sql --insecure --host=localhost:26257
-   ```
+3. **دسترسی به سرویس‌ها**:
+   - **CockroachDB Admin UI**: http://localhost:6565
+   - **Database Connection**: localhost:26257
+   - **Adminer (Database Admin)**: http://localhost:8083
+   - **Prometheus Monitoring**: http://localhost:9090
+   - **Grafana Dashboard**: http://localhost:3001
 
-## استفاده از سیستم
+### ورود به Adminer (Database Admin)
 
-برای راهنمای کامل استفاده از سیستم، فایل `docs/usage_guide.md` را مطالعه کنید.
+**آدرس**: http://localhost:8083
 
-## نگهداری
+Adminer یک ابزار مدیریت دیتابیس است که برای اتصال به CockroachDB استفاده می‌شود.
 
-برای راهنمای نگهداری سیستم، فایل `docs/maintenance_guide.md` را مطالعه کنید.
+#### اطلاعات اتصال:
+| فیلد | مقدار |
+|------|-------|
+| **System** | `PostgreSQL` |
+| **Server** | `localhost:26257` |
+| **Username** | `root` |
+| **Password** | (خالی) |
+| **Database** | `university_management` |
+
+#### مراحل ورود:
+1. به آدرس http://localhost:8083 بروید
+2. فرم ورود را با اطلاعات بالا پر کنید
+3. روی "Login" کلیک کنید
+
+#### پس از ورود:
+- مشاهده جداول دیتابیس
+- اجرای کوئری‌های SQL
+- مدیریت داده‌ها
+- بررسی ساختار دیتابیس
+
+### مانیتورینگ و لاگ‌ها
+
+#### Prometheus
+- **آدرس**: http://localhost:9090
+- **کاربرد**: جمع‌آوری و ذخیره metrics از CockroachDB
+- **دسترسی**: بدون احراز هویت
+
+### ورود به Prometheus
+
+**آدرس**: http://localhost:9090
+
+Prometheus برای جمع‌آوری و ذخیره metrics از CockroachDB استفاده می‌شود.
+
+#### اطلاعات ورود:
+| فیلد | مقدار |
+|------|-------|
+| **دسترسی** | بدون احراز هویت |
+| **نکته** | مستقیماً قابل دسترسی است |
+
+#### مراحل استفاده:
+1. به آدرس http://localhost:9090 بروید
+2. مستقیماً وارد پنل Prometheus می‌شوید
+3. از منوهای مختلف استفاده کنید
+
+#### پس از ورود:
+- مشاهده metrics در بخش "Graph"
+- بررسی وضعیت targets در "Status" > "Targets"
+- اجرای کوئری‌های PromQL
+- مشاهده alerts در "Alerts"
+
+#### Grafana
+- **آدرس**: http://localhost:3001
+- **نام کاربری**: admin
+- **رمز عبور**: admin123
+- **کاربرد**: نمایش داشبوردهای مانیتورینگ و تجسم داده‌ها
+
+### ورود به Grafana
+
+**آدرس**: http://localhost:3001
+
+Grafana برای نمایش داشبوردهای مانیتورینگ و تجسم داده‌ها استفاده می‌شود.
+
+#### اطلاعات ورود:
+| فیلد | مقدار |
+|------|-------|
+| **نام کاربری** | `admin` |
+| **رمز عبور** | `admin123` |
+
+#### مراحل ورود:
+1. به آدرس http://localhost:3001 بروید
+2. نام کاربری `admin` و رمز عبور `admin123` را وارد کنید
+3. روی "Login" کلیک کنید
+
+#### پس از ورود:
+- مشاهده داشبوردهای مانیتورینگ
+- ایجاد داشبوردهای جدید
+- تنظیم alerts و notifications
+- Export کردن گزارش‌ها
+
+#### CockroachDB Admin UI
+- **آدرس**: http://localhost:6565
+- **کاربرد**: مدیریت دیتابیس، مشاهده کوئری‌ها، مانیتورینگ عملکرد
+
+## مستندات
+
+### راهنماهای اصلی
+- **نصب و راه‌اندازی**: این فایل (README.md)
+- **استفاده از سیستم**: `docs/usage_guide.md`
+- **نگهداری**: `docs/maintenance_guide.md`
+
+### راهنماهای تخصصی
+- **مانیتورینگ**: `docs/monitoring_guide.md`
+- **Prometheus Monitoring**: `docs/prometheus_guide.md`
+- **Grafana Dashboard**: `docs/grafana_guide.md`
+- **Adminer (Database Admin)**: `docs/adminer_guide.md`
+- **راهنمای دیتابیس**: `docs/database_guide.md`
+- **مثال‌های عملی**: `docs/practical_examples.md`
 
 ## پشتیبانی
 

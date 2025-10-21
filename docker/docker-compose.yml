@@ -11,7 +11,7 @@ services:
     container_name: university_cockroachdb
     ports:
       - "26257:26257"  # Database port
-      - "8080:8080"    # Admin UI port
+      - "6565:6565"    # Admin UI port
     volumes:
       - cockroach_data:/cockroach/cockroach-data
       - ./database/schema:/docker-entrypoint-initdb.d/schema
@@ -19,7 +19,7 @@ services:
       - ./database/procedures:/docker-entrypoint-initdb.d/procedures
     environment:
       - COCKROACH_DATABASE=university_management
-    command: start-single-node --insecure --http-addr=0.0.0.0:8080 --listen-addr=0.0.0.0:26257
+    command: start-single-node --insecure --http-addr=0.0.0.0:6565 --listen-addr=localhost:26257
     networks:
       - university_network
     restart: unless-stopped
@@ -32,7 +32,7 @@ services:
 
   # Database Initialization Service
   db_init:
-    image: cockroachdb/cockroach:latest
+    image: alpine:latest
     container_name: university_db_init
     depends_on:
       cockroachdb:
@@ -47,33 +47,34 @@ services:
       - COCKROACH_DATABASE=university_management
     command: |
       sh -c '
+        apk add --no-cache curl
         echo "Waiting for database to be ready..."
         sleep 10
         
         echo "Creating database..."
-        cockroach sql --insecure --host=cockroachdb:26257 --execute="CREATE DATABASE IF NOT EXISTS university_management;"
+        curl -X POST http://cockroachdb:6565/_admin/v1/sql -d "{\"sql\":\"CREATE DATABASE IF NOT EXISTS university_management;\"}"
         
         echo "Running schema scripts..."
         for file in /scripts/schema/*.sql; do
-          if [ -f "$file" ]; then
-            echo "Executing $file"
-            cockroach sql --insecure --host=cockroachdb:26257 --database=university_management < "$file"
+          if [ -f "$$file" ]; then
+            echo "Executing $$file"
+            curl -X POST http://cockroachdb:6565/_admin/v1/sql -d "{\"sql\":\"$$(cat $$file)\"}"
           fi
         done
         
         echo "Running data scripts..."
         for file in /scripts/data/*.sql; do
-          if [ -f "$file" ]; then
-            echo "Executing $file"
-            cockroach sql --insecure --host=cockroachdb:26257 --database=university_management < "$file"
+          if [ -f "$$file" ]; then
+            echo "Executing $$file"
+            curl -X POST http://cockroachdb:6565/_admin/v1/sql -d "{\"sql\":\"$$(cat $$file)\"}"
           fi
         done
         
         echo "Running procedure scripts..."
         for file in /scripts/procedures/*.sql; do
-          if [ -f "$file" ]; then
-            echo "Executing $file"
-            cockroach sql --insecure --host=cockroachdb:26257 --database=university_management < "$file"
+          if [ -f "$$file" ]; then
+            echo "Executing $$file"
+            curl -X POST http://cockroachdb:6565/_admin/v1/sql -d "{\"sql\":\"$$(cat $$file)\"}"
           fi
         done
         
@@ -83,40 +84,54 @@ services:
       - university_network
     restart: "no"
 
-  # Database Backup Service
-  db_backup:
-    image: cockroachdb/cockroach:latest
-    container_name: university_db_backup
+  # Database Backup Service (Disabled for now)
+  # db_backup:
+  #   image: alpine:latest
+  #   container_name: university_db_backup
+  #   depends_on:
+  #     - cockroachdb
+  #   volumes:
+  #     - ./backups:/backups
+  #     - ./scripts:/scripts
+  #   environment:
+  #     - COCKROACH_HOST=cockroachdb:26257
+  #     - BACKUP_SCHEDULE=0 2 * * *  # Daily at 2 AM
+  #   command: |
+  #     sh -c '
+  #       apk add --no-cache curl
+  #       echo "Setting up backup service..."
+  #       while true; do
+  #         echo "Starting backup at $$(date)"
+  #         curl -X POST http://cockroachdb:8080/_admin/v1/backup -d "{\"database\":\"university_management\"}" > /backups/university_backup_$$(date +%Y%m%d_%H%M%S).json
+  #         echo "Backup completed at $$(date)"
+  #         sleep 86400  # Wait 24 hours
+  #       done
+  #     '
+  #   networks:
+  #     - university_network
+  #   restart: unless-stopped
+
+  # Database Admin Interface
+  db_admin:
+    image: adminer:latest
+    container_name: university_db_admin
+    ports:
+      - "8083:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=cockroachdb:26257
     depends_on:
       - cockroachdb
-    volumes:
-      - ./backups:/backups
-      - ./scripts:/scripts
-    environment:
-      - COCKROACH_HOST=cockroachdb:26257
-      - BACKUP_SCHEDULE=0 2 * * *  # Daily at 2 AM
-    command: |
-      sh -c '
-        echo "Setting up backup service..."
-        while true; do
-          echo "Starting backup at $(date)"
-          cockroach dump --insecure --host=cockroachdb:26257 --database=university_management > /backups/university_backup_$(date +%Y%m%d_%H%M%S).sql
-          echo "Backup completed at $(date)"
-          sleep 86400  # Wait 24 hours
-        done
-      '
     networks:
       - university_network
     restart: unless-stopped
 
-  # Database Monitoring Service
-  db_monitor:
+  # Prometheus Monitoring
+  prometheus:
     image: prom/prometheus:latest
-    container_name: university_db_monitor
+    container_name: university_prometheus
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -128,25 +143,33 @@ services:
     networks:
       - university_network
     restart: unless-stopped
-
-  # Database Admin Interface
-  db_admin:
-    image: adminer:latest
-    container_name: university_db_admin
-    ports:
-      - "8081:8080"
-    environment:
-      - ADMINER_DEFAULT_SERVER=cockroachdb:26257
     depends_on:
       - cockroachdb
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: university_grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
     networks:
       - university_network
     restart: unless-stopped
+    depends_on:
+      - prometheus
 
 volumes:
   cockroach_data:
     driver: local
   prometheus_data:
+    driver: local
+  grafana_data:
     driver: local
 
 networks:

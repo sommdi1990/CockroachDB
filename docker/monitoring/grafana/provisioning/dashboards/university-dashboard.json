@@ -1,0 +1,484 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "University Management System - Comprehensive Dashboard",
+    "tags": ["university", "cockroachdb", "monitoring"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "System Overview",
+        "type": "row",
+        "collapsed": false,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Database Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"cockroachdb\"}",
+            "legendFormat": "CockroachDB Status"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "green",
+                  "value": 1
+                }
+              ]
+            },
+            "mappings": [
+              {
+                "type": "value",
+                "value": "0",
+                "text": "DOWN"
+              },
+              {
+                "type": "value",
+                "value": "1",
+                "text": "UP"
+              }
+            ]
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 1
+        }
+      },
+      {
+        "id": 3,
+        "title": "Active Connections",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sql_conns{job=\"cockroachdb\"}",
+            "legendFormat": "Active Connections"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 50
+                },
+                {
+                  "color": "red",
+                  "value": 100
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 1
+        }
+      },
+      {
+        "id": 4,
+        "title": "Query Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(sql_query_count{job=\"cockroachdb\"}[5m])",
+            "legendFormat": "Queries/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 1
+        }
+      },
+      {
+        "id": 5,
+        "title": "Transaction Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(sql_txn_count{job=\"cockroachdb\"}[5m])",
+            "legendFormat": "Transactions/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 1
+        }
+      },
+      {
+        "id": 6,
+        "title": "Performance Metrics",
+        "type": "row",
+        "collapsed": false,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 9
+        }
+      },
+      {
+        "id": 7,
+        "title": "Query Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(sql_query_count{job=\"cockroachdb\"}[5m])",
+            "legendFormat": "Queries/sec"
+          },
+          {
+            "expr": "avg_over_time(sql_query_duration{job=\"cockroachdb\"}[5m])",
+            "legendFormat": "Avg Duration (ms)"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Queries/sec",
+            "min": 0
+          },
+          {
+            "label": "Duration (ms)",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 10
+        }
+      },
+      {
+        "id": 8,
+        "title": "Query Duration Percentiles",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sql_query_duration_bucket{job=\"cockroachdb\"})",
+            "legendFormat": "50th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sql_query_duration_bucket{job=\"cockroachdb\"})",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sql_query_duration_bucket{job=\"cockroachdb\"})",
+            "legendFormat": "99th percentile"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Duration (ms)",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 10
+        }
+      },
+      {
+        "id": 9,
+        "title": "Resource Usage",
+        "type": "row",
+        "collapsed": false,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 18
+        }
+      },
+      {
+        "id": 10,
+        "title": "CPU Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(sys_cpu_user_ns{job=\"cockroachdb\"}[5m]) / 1000000000",
+            "legendFormat": "CPU Usage"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "CPU Usage",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 19
+        }
+      },
+      {
+        "id": 11,
+        "title": "Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sys_mem_alloc{job=\"cockroachdb\"} / 1024 / 1024 / 1024",
+            "legendFormat": "Memory Usage (GB)"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Memory (GB)",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 19
+        }
+      },
+      {
+        "id": 12,
+        "title": "Disk Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sys_disk_usage{job=\"cockroachdb\"} / 1024 / 1024 / 1024",
+            "legendFormat": "Disk Usage (GB)"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Disk Usage (GB)",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 19
+        }
+      },
+      {
+        "id": 13,
+        "title": "Network I/O",
+        "type": "row",
+        "collapsed": false,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 27
+        }
+      },
+      {
+        "id": 14,
+        "title": "Network Traffic",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(sys_net_recv_bytes{job=\"cockroachdb\"}[5m])",
+            "legendFormat": "Received (bytes/sec)"
+          },
+          {
+            "expr": "rate(sys_net_sent_bytes{job=\"cockroachdb\"}[5m])",
+            "legendFormat": "Sent (bytes/sec)"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Bytes/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 28
+        }
+      },
+      {
+        "id": 15,
+        "title": "Database Health",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "replication_lag{job=\"cockroachdb\"}",
+            "legendFormat": "Replication Lag (ms)"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Lag (ms)",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 28
+        }
+      },
+      {
+        "id": 16,
+        "title": "Business Metrics",
+        "type": "row",
+        "collapsed": false,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 36
+        }
+      },
+      {
+        "id": 17,
+        "title": "Student Activity",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(student_logins_total[5m])",
+            "legendFormat": "Student Logins/sec"
+          },
+          {
+            "expr": "rate(student_registrations_total[5m])",
+            "legendFormat": "Student Registrations/sec"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Events/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 37
+        }
+      },
+      {
+        "id": 18,
+        "title": "Course Activity",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(course_enrollments_total[5m])",
+            "legendFormat": "Course Enrollments/sec"
+          },
+          {
+            "expr": "sql_query_count{job=\"cockroachdb\", query_type=\"course_capacity\"}",
+            "legendFormat": "Course Capacity %"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Events/sec",
+            "min": 0
+          },
+          {
+            "label": "Capacity %",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 37
+        }
+      },
+      {
+        "id": 19,
+        "title": "Alerts",
+        "type": "row",
+        "collapsed": false,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 45
+        }
+      },
+      {
+        "id": 20,
+        "title": "Active Alerts",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "ALERTS{alertstate=\"firing\"}",
+            "legendFormat": "{{ alertname }}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 46
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,231 @@
+# Alert Rules for University Management System
+# این فایل شامل قوانین هشدار برای سیستم مدیریت دانشگاه است
+
+groups:
+  - name: university_system_alerts
+    rules:
+      # Database Health Alerts
+      - alert: DatabaseDown
+        expr: up{job="cockroachdb"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+          environment: production
+        annotations:
+          summary: "Database is down"
+          description: "CockroachDB has been down for more than 1 minute"
+          runbook_url: "https://docs.university.com/runbooks/database-down"
+
+      - alert: DatabaseHighConnections
+        expr: sql_conns{job="cockroachdb"} > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High database connection count"
+          description: "Database has {{ $value }} active connections (threshold: 100)"
+
+      - alert: DatabaseSlowQueries
+        expr: avg_over_time(sql_query_duration{job="cockroachdb"}[5m]) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High query duration"
+          description: "Average query duration is {{ $value }}ms (threshold: 1000ms)"
+
+      # Resource Usage Alerts
+      - alert: HighMemoryUsage
+        expr: (sys_mem_alloc{job="cockroachdb"} / sys_mem_total{job="cockroachdb"}) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High memory usage"
+          description: "Database memory usage is {{ $value | humanizePercentage }} (threshold: 90%)"
+
+      - alert: LowDiskSpace
+        expr: (sys_disk_available{job="cockroachdb"} / sys_disk_total{job="cockroachdb"}) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Low disk space"
+          description: "Database disk space is {{ $value | humanizePercentage }} (threshold: 10%)"
+
+      - alert: HighCPUUsage
+        expr: rate(sys_cpu_user_ns{job="cockroachdb"}[5m]) / 1000000000 > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High CPU usage"
+          description: "Database CPU usage is {{ $value | humanizePercentage }} (threshold: 80%)"
+
+      # Business Logic Alerts
+      - alert: HighStudentRegistration
+        expr: rate(sql_query_count{job="cockroachdb", query_type="student_registration"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "High student registration rate"
+          description: "Student registration rate is {{ $value }} per second"
+
+      - alert: CourseCapacityWarning
+        expr: sql_query_count{job="cockroachdb", query_type="course_capacity"} > 90
+        for: 1m
+        labels:
+          severity: warning
+          service: business
+        annotations:
+          summary: "Course capacity warning"
+          description: "Course capacity is {{ $value }}% (threshold: 90%)"
+
+      # Security Alerts
+      - alert: BruteForceAttack
+        expr: rate(failed_logins_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          service: security
+        annotations:
+          summary: "Potential brute force attack"
+          description: "High rate of failed login attempts: {{ $value }} per second"
+
+      - alert: UnusualLoginPattern
+        expr: rate(login_attempts_total[5m]) > 50
+        for: 5m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "Unusual login pattern"
+          description: "High rate of login attempts: {{ $value }} per second"
+
+      # Backup Alerts
+      - alert: BackupFailed
+        expr: backup_success{job="cockroachdb"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: backup
+        annotations:
+          summary: "Database backup failed"
+          description: "Database backup has failed"
+
+      - alert: BackupSizeAnomaly
+        expr: backup_size_bytes{job="cockroachdb"} > 1000000000  # 1GB
+        for: 5m
+        labels:
+          severity: warning
+          service: backup
+        annotations:
+          summary: "Unusual backup size"
+          description: "Backup size is {{ $value | humanizeBytes }} (threshold: 1GB)"
+
+      # Performance Alerts
+      - alert: HighTransactionRate
+        expr: rate(sql_txn_count{job="cockroachdb"}[5m]) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High transaction rate"
+          description: "Transaction rate is {{ $value }} per second (threshold: 1000)"
+
+      - alert: ReplicationLag
+        expr: replication_lag{job="cockroachdb"} > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High replication lag"
+          description: "Replication lag is {{ $value }}ms (threshold: 1000ms)"
+
+  - name: university_business_alerts
+    rules:
+      # Student Management Alerts
+      - alert: StudentRegistrationSpike
+        expr: increase(student_registrations_total[1h]) > 100
+        for: 0m
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "Student registration spike"
+          description: "{{ $value }} students registered in the last hour"
+
+      - alert: LowStudentActivity
+        expr: rate(student_logins_total[1h]) < 1
+        for: 30m
+        labels:
+          severity: warning
+          service: business
+        annotations:
+          summary: "Low student activity"
+          description: "Student login rate is {{ $value }} per hour"
+
+      # Course Management Alerts
+      - alert: CourseEnrollmentSpike
+        expr: increase(course_enrollments_total[1h]) > 200
+        for: 0m
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "Course enrollment spike"
+          description: "{{ $value }} course enrollments in the last hour"
+
+      - alert: CourseCapacityCritical
+        expr: sql_query_count{job="cockroachdb", query_type="course_capacity"} > 95
+        for: 1m
+        labels:
+          severity: critical
+          service: business
+        annotations:
+          summary: "Course capacity critical"
+          description: "Course capacity is {{ $value }}% (threshold: 95%)"
+
+  - name: university_system_health
+    rules:
+      # System Health Checks
+      - alert: SystemHealthCheck
+        expr: up{job="cockroachdb"} == 0 or up{job="prometheus"} == 0 or up{job="grafana"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "System health check failed"
+          description: "One or more critical services are down"
+
+      - alert: ServiceRestart
+        expr: increase(process_start_time_seconds[1h]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Service restart detected"
+          description: "Service has been restarted in the last hour"
+
+      # Network Alerts
+      - alert: HighNetworkTraffic
+        expr: rate(sys_net_recv_bytes{job="cockroachdb"}[5m]) + rate(sys_net_sent_bytes{job="cockroachdb"}[5m]) > 100000000  # 100MB/s
+        for: 5m
+        labels:
+          severity: warning
+          service: network
+        annotations:
+          summary: "High network traffic"
+          description: "Network traffic is {{ $value | humanizeBytes }}/s (threshold: 100MB/s)"

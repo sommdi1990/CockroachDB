@@ -91,7 +91,7 @@ cockroach node status --insecure --host=localhost:26257\n\
 RUN chmod +x /app/scripts/health_check.sh
 
 # Expose ports
-EXPOSE 26257 8080
+EXPOSE 26257 6565
 
 # Set working directory
 WORKDIR /app
@@ -101,4 +101,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD /app/scripts/health_check.sh
 
 # Default command
-CMD ["start-single-node", "--insecure", "--http-addr=0.0.0.0:8080", "--listen-addr=0.0.0.0:26257"]
+CMD ["start-single-node", "--insecure", "--http-addr=0.0.0.0:6565", "--listen-addr=0.0.0.0:26257"]
