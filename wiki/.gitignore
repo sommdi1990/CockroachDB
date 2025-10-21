@@ -1,0 +1,5 @@
+# Wiki specific ignore file
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
