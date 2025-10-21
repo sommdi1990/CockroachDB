@@ -1,0 +1,157 @@
+# University Management System - Docker Compose Configuration
+# Created for CockroachDB
+# این فایل شامل تنظیمات Docker Compose برای سیستم مدیریت دانشگاه است
+
+version: '3.8'
+
+services:
+  # CockroachDB Database
+  cockroachdb:
+    image: cockroachdb/cockroach:latest
+    container_name: university_cockroachdb
+    ports:
+      - "26257:26257"  # Database port
+      - "8080:8080"    # Admin UI port
+    volumes:
+      - cockroach_data:/cockroach/cockroach-data
+      - ./database/schema:/docker-entrypoint-initdb.d/schema
+      - ./database/data:/docker-entrypoint-initdb.d/data
+      - ./database/procedures:/docker-entrypoint-initdb.d/procedures
+    environment:
+      - COCKROACH_DATABASE=university_management
+    command: start-single-node --insecure --http-addr=0.0.0.0:8080 --listen-addr=0.0.0.0:26257
+    networks:
+      - university_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "cockroach", "node", "status", "--insecure", "--host=localhost:26257"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Database Initialization Service
+  db_init:
+    image: cockroachdb/cockroach:latest
+    container_name: university_db_init
+    depends_on:
+      cockroachdb:
+        condition: service_healthy
+    volumes:
+      - ./database/schema:/scripts/schema
+      - ./database/data:/scripts/data
+      - ./database/procedures:/scripts/procedures
+      - ./scripts:/scripts
+    environment:
+      - COCKROACH_HOST=cockroachdb:26257
+      - COCKROACH_DATABASE=university_management
+    command: |
+      sh -c '
+        echo "Waiting for database to be ready..."
+        sleep 10
+        
+        echo "Creating database..."
+        cockroach sql --insecure --host=cockroachdb:26257 --execute="CREATE DATABASE IF NOT EXISTS university_management;"
+        
+        echo "Running schema scripts..."
+        for file in /scripts/schema/*.sql; do
+          if [ -f "$file" ]; then
+            echo "Executing $file"
+            cockroach sql --insecure --host=cockroachdb:26257 --database=university_management < "$file"
+          fi
+        done
+        
+        echo "Running data scripts..."
+        for file in /scripts/data/*.sql; do
+          if [ -f "$file" ]; then
+            echo "Executing $file"
+            cockroach sql --insecure --host=cockroachdb:26257 --database=university_management < "$file"
+          fi
+        done
+        
+        echo "Running procedure scripts..."
+        for file in /scripts/procedures/*.sql; do
+          if [ -f "$file" ]; then
+            echo "Executing $file"
+            cockroach sql --insecure --host=cockroachdb:26257 --database=university_management < "$file"
+          fi
+        done
+        
+        echo "Database initialization completed!"
+      '
+    networks:
+      - university_network
+    restart: "no"
+
+  # Database Backup Service
+  db_backup:
+    image: cockroachdb/cockroach:latest
+    container_name: university_db_backup
+    depends_on:
+      - cockroachdb
+    volumes:
+      - ./backups:/backups
+      - ./scripts:/scripts
+    environment:
+      - COCKROACH_HOST=cockroachdb:26257
+      - BACKUP_SCHEDULE=0 2 * * *  # Daily at 2 AM
+    command: |
+      sh -c '
+        echo "Setting up backup service..."
+        while true; do
+          echo "Starting backup at $(date)"
+          cockroach dump --insecure --host=cockroachdb:26257 --database=university_management > /backups/university_backup_$(date +%Y%m%d_%H%M%S).sql
+          echo "Backup completed at $(date)"
+          sleep 86400  # Wait 24 hours
+        done
+      '
+    networks:
+      - university_network
+    restart: unless-stopped
+
+  # Database Monitoring Service
+  db_monitor:
+    image: prom/prometheus:latest
+    container_name: university_db_monitor
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - university_network
+    restart: unless-stopped
+
+  # Database Admin Interface
+  db_admin:
+    image: adminer:latest
+    container_name: university_db_admin
+    ports:
+      - "8081:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=cockroachdb:26257
+    depends_on:
+      - cockroachdb
+    networks:
+      - university_network
+    restart: unless-stopped
+
+volumes:
+  cockroach_data:
+    driver: local
+  prometheus_data:
+    driver: local
+
+networks:
+  university_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
