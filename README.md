@@ -1,17 +1,13 @@
-# سیستم مدیریت دانشگاه - University Management System
+# University records in CockroachDB
 
-## توضیحات پروژه
+A SQL model for a university covers students, professors, courses, enrollments and grades. Reporting views expose common joins and aggregates, including student GPA and department statistics.
 
-این پروژه یک سیستم مدیریت دانشگاه کامل است که بر روی CockroachDB پیاده‌سازی شده است. این سیستم شامل تمام جداول و روابط لازم برای مدیریت دانشجویان، اساتید، دروس، نمرات و سایر جنبه‌های دانشگاهی می‌باشد.
+The table script defines the stored records, the index script adds access paths and the views assemble the reporting interface. The initialization and monitoring scripts sit outside the schema, so the data model can be reviewed independently of a cluster.
 
-## ویژگی‌های سیستم
-
-- **مدیریت دانشجویان**: ثبت‌نام، اطلاعات شخصی، وضعیت تحصیلی
-- **مدیریت اساتید**: اطلاعات اساتید، تخصص‌ها، ساعات کاری
-- **مدیریت دروس**: کاتالوگ دروس، پیش‌نیازها، واحدها
-- **مدیریت نمرات**: ثبت نمرات، محاسبه معدل، گزارش‌گیری
-- **مدیریت کلاس‌ها**: برنامه‌ریزی کلاس‌ها، سالن‌ها، زمان‌بندی
-- **مدیریت دانشکده‌ها**: سازماندهی دانشکده‌ها و گروه‌های آموزشی
+- [01_create_tables.sql](database/schema/01_create_tables.sql)
+- [02_create_indexes.sql](database/schema/02_create_indexes.sql)
+- [03_create_views.sql](database/schema/03_create_views.sql)
+- [init_database.sh](scripts/init_database.sh)
 
 ## ساختار پروژه
 
@@ -155,22 +151,3 @@ Grafana برای نمایش داشبوردهای مانیتورینگ و تجس�
 #### CockroachDB Admin UI
 - **آدرس**: http://localhost:6565
 - **کاربرد**: مدیریت دیتابیس، مشاهده کوئری‌ها، مانیتورینگ عملکرد
-
-## مستندات
-
-### راهنماهای اصلی
-- **نصب و راه‌اندازی**: این فایل (README.md)
-- **استفاده از سیستم**: `docs/usage_guide.md`
-- **نگهداری**: `docs/maintenance_guide.md`
-
-### راهنماهای تخصصی
-- **مانیتورینگ**: `docs/monitoring_guide.md`
-- **Prometheus Monitoring**: `docs/prometheus_guide.md`
-- **Grafana Dashboard**: `docs/grafana_guide.md`
-- **Adminer (Database Admin)**: `docs/adminer_guide.md`
-- **راهنمای دیتابیس**: `docs/database_guide.md`
-- **مثال‌های عملی**: `docs/practical_examples.md`
-
-## پشتیبانی
-
-در صورت بروز مشکل، لطفاً issue جدیدی در repository ایجاد کنید.
